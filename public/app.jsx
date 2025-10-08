@@ -1,32 +1,24 @@
-// ---------------------------------------------------
-// public/app.js – complete React front‑end (single file)
-// ---------------------------------------------------
+// -------------------------------------------------------------
+// public/app.js – React front‑end (sign‑up, login, todo list)
+// -------------------------------------------------------------
+import { useState, useEffect, useContext, createContext } from "https://unpkg.com/react@18/umd/react.development.js";
+import { createRoot } from "https://unpkg.com/react-dom@18/umd/react-dom.development.js";
 
-// Import React hooks from the UMD bundle
-const { useState, useEffect, useContext, createContext } = React;
-const { createRoot } = ReactDOM;
-
-// ---------------------------------------------------
-// API helper (axios instance)
-// ---------------------------------------------------
-const api = axios.create({
-  baseURL: "/api", // relative to same host
-});
-api.interceptors.request.use((cfg) => {
+// ---------- Axios instance with token handling ----------
+const api = axios.create({ baseURL: "/api" });
+api.interceptors.request.use(cfg => {
   const token = localStorage.getItem("token");
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
   return cfg;
 });
 
-// ---------------------------------------------------
-// Auth Context
-// ---------------------------------------------------
+// ---------- Auth context ----------
 const AuthContext = createContext();
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
-  // Decode token (client‑side only) to get basic info
+  // Check for a stored token on mount – decode payload (no verification needed client‑side)
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -34,6 +26,7 @@ function AuthProvider({ children }) {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setUser({ id: payload.id, email: payload.email });
       } catch {
+        // malformed token → ignore
         localStorage.removeItem("token");
       }
     }
@@ -55,77 +48,19 @@ function AuthProvider({ children }) {
   );
 }
 
-// ---------------------------------------------------
-// Simple view switcher (no react‑router)
-// ---------------------------------------------------
-function App() {
-  const { user } = useContext(AuthContext);
-  const [view, setView] = useState("login"); // "login" | "register" | "todos"
-
-  // Switch view based on authentication state
-  if (!user) {
-    return view === "register" ? (
-      <Register switchToLogin={() => setView("login")} />
-    ) : (
-      <Login switchToRegister={() => setView("register")} />
-    );
-  }
-
-  // Logged‑in – show To‑Do list
-  return <TodoList />;
-}
-
-// ---------------------------------------------------
-// Login component
-// ---------------------------------------------------
-function Login({ switchToRegister }) {
-  const { login } = useContext(AuthContext);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const { data } = await api.post("/auth/login", { email, password });
-      login(data.token, data.user);
-    } catch (err) {
-      alert(err.response?.data?.msg || "Login failed");
-    }
-  };
-
-  return (
-    <div className="card bg-tan" style={{ maxWidth: "400px", margin: "auto" }}>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <input type="email" placeholder="Email" value={email}
-               onChange={e => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={password}
-               onChange={e => setPassword(e.target.value)} required />
-        <button type="submit"
-                style={{ background: "#ffb74d", border: "none", padding: "8px", cursor: "pointer" }}>
-          Sign In
-        </button>
-        <p>
-          No account? <a href="#" onClick={switchToRegister}>Register</a>
-        </p>
-      </form>
-    </div>
-  );
-}
-
-// ---------------------------------------------------
-// Register component
-// ---------------------------------------------------
+// -------------------------------------------------------------
+// Sign‑up component
+// -------------------------------------------------------------
 function Register({ switchToLogin }) {
   const { login } = useContext(AuthContext);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
 
-  const handleSubmit = async (e) => {
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const submit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await api.post("/auth/register", { name, email, password });
+      const { data } = await api.post("/auth/register", form);
       login(data.token, data.user);
     } catch (err) {
       alert(err.response?.data?.msg || "Registration failed");
@@ -133,36 +68,69 @@ function Register({ switchToLogin }) {
   };
 
   return (
-    <div className="card bg-tan" style={{ maxWidth: "400px", margin: "auto" }}>
+    <div className="card" style={{ maxWidth: "400px", margin: "auto" }}>
       <h2>Register</h2>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <input placeholder="Full name" value={name}
-               onChange={e => setName(e.target.value)} required />
-        <input type="email" placeholder="Email" value={email}
-               onChange={e => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={password}
-               onChange={e => setPassword(e.target.value)} required />
-        <button type="submit"
-                style={{ background: "#ffb74d", border: "none", padding: "8px", cursor: "pointer" }}>
-          Create Account
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <input name="name" placeholder="Full name" value={form.name}
+               onChange={handleChange} required />
+        <input name="email" type="email" placeholder="Email" value={form.email}
+               onChange={handleChange} required />
+        <input name="password" type="password" placeholder="Password"
+               value={form.password} onChange={handleChange} required />
+        <button type="submit" style={{ background: "#ffb74d", border: "none", padding: "8px", cursor: "pointer" }}>
+          Create account
         </button>
-        <p>
-          Already have one? <a href="#" onClick={switchToLogin}>Login</a>
-        </p>
+        <p>Already have an account? <a href="#" onClick={switchToLogin}>Log in</a></p>
       </form>
     </div>
   );
 }
 
-// ---------------------------------------------------
-// Todo List component
-// ---------------------------------------------------
+// -------------------------------------------------------------
+// Login component
+// -------------------------------------------------------------
+function Login({ switchToRegister }) {
+  const { login } = useContext(AuthContext);
+  const [form, setForm] = useState({ email: "", password: "" });
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await api.post("/auth/login", form);
+      login(data.token, data.user);
+    } catch (err) {
+      alert(err.response?.data?.msg || "Login failed");
+    }
+  };
+
+  return (
+    <div className="card" style={{ maxWidth: "400px", margin: "auto" }}>
+      <h2>Login</h2>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <input name="email" type="email" placeholder="Email" value={form.email}
+               onChange={handleChange} required />
+        <input name="password" type="password" placeholder="Password"
+               value={form.password} onChange={handleChange} required />
+        <button type="submit" style={{ background: "#ffb74d", border: "none", padding: "8px", cursor: "pointer" }}>
+          Sign in
+        </button>
+        <p>No account? <a href="#" onClick={switchToRegister}>Register</a></p>
+      </form>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// Todo list component (main app after login)
+// -------------------------------------------------------------
 function TodoList() {
   const { logout } = useContext(AuthContext);
   const [todos, setTodos] = useState([]);
   const [newTitle, setNewTitle] = useState("");
 
-  // Load tasks once component mounts
+  // Load todos once after component mounts
   useEffect(() => {
     fetchTodos();
   }, []);
@@ -193,7 +161,7 @@ function TodoList() {
   };
 
   return (
-    <div className="card bg-tan" style={{ maxWidth: "600px", margin: "auto" }}>
+    <div className="card" style={{ maxWidth: "600px", margin: "auto" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2>My To‑Do List</h2>
         <button onClick={logout}
@@ -203,7 +171,7 @@ function TodoList() {
       </header>
 
       <form onSubmit={addTodo}
-            style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+            style={{ display: "flex", gap: "8px", margin: "12px 0" }}>
         <input value={newTitle}
                onChange={e => setNewTitle(e.target.value)}
                placeholder="New task..."
@@ -218,11 +186,11 @@ function TodoList() {
       <ul style={{ listStyle: "none", padding: 0 }}>
         {todos.map(todo => (
           <li key={todo._id}
-              style={{ display: "flex", alignItems: "center",
-                       justifyContent: "space-between",
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
                        padding: "6px 0", borderBottom: "1px solid #ddd" }}>
- <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-              <input type="checkbox" checked={todo.completed}
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+              <input type="checkbox"
+                     checked={todo.completed}
                      onChange={() => toggleTodo(todo)} />
               <span style={{
                 textDecoration: todo.completed ? "line-through" : "none",
@@ -230,8 +198,7 @@ function TodoList() {
               }}>{todo.title}</span>
             </label>
             <button onClick={() => deleteTodo(todo)}
-                    style={{ background: "transparent", border: "none",
-                             color: "#f44336", cursor: "pointer" }}>
+                    style={{ background: "transparent", border: "none", color: "#f44336", cursor: "pointer" }}>
               ✖
             </button>
           </li>
@@ -241,9 +208,26 @@ function TodoList() {
   );
 }
 
-// ---------------------------------------------------
-// Render
-// ---------------------------------------------------
+// -------------------------------------------------------------
+// Root component – switches between auth screens & todo UI
+// -------------------------------------------------------------
+function App() {
+  const { user } = useContext(AuthContext);
+  const [view, setView] = useState("login"); // "login" | "register"
+
+  if (!user) {
+    return view === "register"
+      ? <Register switchToLogin={() => setView("login")} />
+      : <Login    switchToRegister={() => setView("register")} />;
+  }
+
+  // user is logged in → show the todo UI
+  return <TodoList />;
+}
+
+// -------------------------------------------------------------
+// Render the SPA
+// -------------------------------------------------------------
 const root = createRoot(document.getElementById("root"));
 root.render(
   <AuthProvider>
