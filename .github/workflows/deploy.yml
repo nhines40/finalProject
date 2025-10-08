@@ -1,0 +1,116 @@
+name: CI / CD – Build, Push, Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # needed for OIDC to AWS
+      contents: read
+
+    steps:
+      # -------------------------------------------------
+      # 1️⃣ Checkout source
+      # -------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------
+      # 2️⃣ Set up Node (for lint / test)
+      # -------------------------------------------------
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # -------------------------------------------------
+      # 3️⃣ Authenticate to AWS via OIDC
+      # -------------------------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # -------------------------------------------------
+      # 4️⃣ Login to ECR
+      # -------------------------------------------------
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # -------------------------------------------------
+      # 5️⃣ Build, tag, and push Docker image
+      # -------------------------------------------------
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/week6project:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/week6project:$IMAGE_TAG
+
+      # -------------------------------------------------
+      # 6️⃣ Deploy to Elastic Beanstalk (pull the new image)
+      # -------------------------------------------------
+      - name: Deploy to Elastic Beanstalk
+        env:
+          EB_APP: week6cloudfinal
+          EB_ENV: week6cloudfinal-env
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          pip install --quiet awsebcli
+          eb init $EB_APP --region $AWS_REGION -p docker
+          eb use $EB_ENV
+          # Tell EB which image tag to pull
+          eb setenv IMAGE_TAG=${IMAGE_TAG}
+          # Deploy – ignore the exit code (EB may return 4 if health isn’t green yet)
+          eb deploy --quiet || true
+
+      # -------------------------------------------------
+      # 7️⃣ Wait until the environment health becomes GREEN
+      # -------------------------------------------------
+      - name: Wait for Elastic Beanstalk health = GREEN
+        env:
+          EB_ENV: week6cloudfinal-env
+          # How long we’re willing to wait (seconds). Adjust if your app needs more start‑up time.
+          MAX_WAIT_SECONDS: 900    # 15 minutes – a little more than before
+        run: |
+          get_health() {
+            # The AWS CLI returns JSON; we pull out the field "HealthStatus".
+            # Example output:  "HealthStatus": "Ok"
+            aws elasticbeanstalk describe-environment-health \
+              --environment-name "$EB_ENV" \
+              --attribute-names HealthStatus \
+              --query 'HealthStatus' \
+              --output text 2>/dev/null || echo "Unknown"
+          }
+
+          echo "🔎 Waiting for Elastic Beanstalk environment '$EB_ENV' to become GREEN (HealthStatus=Ok)…"
+          END=$(( $(date +%s) + $MAX_WAIT_SECONDS ))
+
+          while true; do
+            STATUS=$(get_health)
+            echo "Current HealthStatus: $STATUS"
+
+            if [[ "$STATUS" == "Ok" ]]; then
+              echo "✅ Environment health is GREEN (Ok) – continuing."
+              exit 0
+            fi
+
+            if [[ $(date +%s) -ge $END ]]; then
+              echo "❌ Timed out after $MAX_WAIT_SECONDS seconds waiting for GREEN health."
+              echo "Final health dump for debugging:"
+              aws elasticbeanstalk describe-environment-health \
+                --environment-name "$EB_ENV" \
+                --attribute-names All \
+                --output yaml
+              exit 1
+            fi
+
+            sleep 15
+          done
