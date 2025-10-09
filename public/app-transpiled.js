@@ -1,24 +1,18 @@
 (() => {
-  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-  }) : x)(function(x) {
-    if (typeof require !== "undefined") return require.apply(this, arguments);
-    throw Error('Dynamic require of "' + x + '" is not supported');
-  });
-
   // public/app.jsx
-  var import_react_development = __require("https://unpkg.com/react@18/umd/react.development.js");
-  var import_react_dom_development = __require("https://unpkg.com/react-dom@18/umd/react-dom.development.js");
+  var { useState, useEffect, useContext, createContext } = window.React;
+  var { createRoot } = window.ReactDOM;
+  var axios = window.axios;
   var api = axios.create({ baseURL: "/api" });
   api.interceptors.request.use((cfg) => {
     const token = localStorage.getItem("token");
     if (token) cfg.headers.Authorization = `Bearer ${token}`;
     return cfg;
   });
-  var AuthContext = (0, import_react_development.createContext)();
+  var AuthContext = createContext();
   function AuthProvider({ children }) {
-    const [user, setUser] = (0, import_react_development.useState)(null);
-    (0, import_react_development.useEffect)(() => {
+    const [user, setUser] = useState(null);
+    useEffect(() => {
       const token = localStorage.getItem("token");
       if (token) {
         try {
@@ -40,8 +34,8 @@
     return /* @__PURE__ */ React.createElement(AuthContext.Provider, { value: { user, login, logout } }, children);
   }
   function Register({ switchToLogin }) {
-    const { login } = (0, import_react_development.useContext)(AuthContext);
-    const [form, setForm] = (0, import_react_development.useState)({ name: "", email: "", password: "" });
+    const { login } = useContext(AuthContext);
+    const [form, setForm] = useState({ name: "", email: "", password: "" });
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
     const submit = async (e) => {
       e.preventDefault();
@@ -84,8 +78,8 @@
     ), /* @__PURE__ */ React.createElement("button", { type: "submit", style: { background: "#ffb74d", border: "none", padding: "8px", cursor: "pointer" } }, "Create account"), /* @__PURE__ */ React.createElement("p", null, "Already have an account? ", /* @__PURE__ */ React.createElement("a", { href: "#", onClick: switchToLogin }, "Log in"))));
   }
   function Login({ switchToRegister }) {
-    const { login } = (0, import_react_development.useContext)(AuthContext);
-    const [form, setForm] = (0, import_react_development.useState)({ email: "", password: "" });
+    const { login } = useContext(AuthContext);
+    const [form, setForm] = useState({ email: "", password: "" });
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
     const submit = async (e) => {
       e.preventDefault();
@@ -119,10 +113,10 @@
     ), /* @__PURE__ */ React.createElement("button", { type: "submit", style: { background: "#ffb74d", border: "none", padding: "8px", cursor: "pointer" } }, "Sign in"), /* @__PURE__ */ React.createElement("p", null, "No account? ", /* @__PURE__ */ React.createElement("a", { href: "#", onClick: switchToRegister }, "Register"))));
   }
   function TodoList() {
-    const { logout } = (0, import_react_development.useContext)(AuthContext);
-    const [todos, setTodos] = (0, import_react_development.useState)([]);
-    const [newTitle, setNewTitle] = (0, import_react_development.useState)("");
-    (0, import_react_development.useEffect)(() => {
+    const { logout } = useContext(AuthContext);
+    const [todos, setTodos] = useState([]);
+    const [newTitle, setNewTitle] = useState("");
+    useEffect(() => {
       fetchTodos();
     }, []);
     const fetchTodos = async () => {
@@ -211,14 +205,14 @@
     ))));
   }
   function App() {
-    const { user } = (0, import_react_development.useContext)(AuthContext);
-    const [view, setView] = (0, import_react_development.useState)("login");
+    const { user } = useContext(AuthContext);
+    const [view, setView] = useState("login");
     if (!user) {
       return view === "register" ? /* @__PURE__ */ React.createElement(Register, { switchToLogin: () => setView("login") }) : /* @__PURE__ */ React.createElement(Login, { switchToRegister: () => setView("register") });
     }
     return /* @__PURE__ */ React.createElement(TodoList, null);
   }
-  var root = (0, import_react_dom_development.createRoot)(document.getElementById("root"));
+  var root = createRoot(document.getElementById("root"));
   root.render(
     /* @__PURE__ */ React.createElement(AuthProvider, null, /* @__PURE__ */ React.createElement(App, null))
   );

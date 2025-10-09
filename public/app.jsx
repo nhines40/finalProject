@@ -1,8 +1,9 @@
 // -------------------------------------------------------------
 // public/app.js – React front‑end (sign‑up, login, todo list)
 // -------------------------------------------------------------
-import { useState, useEffect, useContext, createContext } from "https://unpkg.com/react@18/umd/react.development.js";
-import { createRoot } from "https://unpkg.com/react-dom@18/umd/react-dom.development.js";
+const { useState, useEffect, useContext, createContext } = window.React;
+const { createRoot } = window.ReactDOM
+const axios = window.axios;
 
 // ---------- Axios instance with token handling ----------
 const api = axios.create({ baseURL: "/api" });
