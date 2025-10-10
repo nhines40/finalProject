@@ -1,8 +1,8 @@
-// -------------------------------------------------------------
-// public/app.js – React front‑end (sign‑up, login, todo list)
-// -------------------------------------------------------------
+/* -------------------------------------------------------------
+   public/app.js – React front‑end (notepad UI)
+   ------------------------------------------------------------- */
 const { useState, useEffect, useContext, createContext } = window.React;
-const { createRoot } = window.ReactDOM
+const { createRoot } = window.ReactDOM;
 const axios = window.axios;
 
 // ---------- Axios instance with token handling ----------
@@ -19,7 +19,7 @@ const AuthContext = createContext();
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
-  // Check for a stored token on mount – decode payload (no verification needed client‑side)
+  // Load token on mount – decode payload (client‑side only)
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -27,7 +27,6 @@ function AuthProvider({ children }) {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setUser({ id: payload.id, email: payload.email });
       } catch {
-        // malformed token → ignore
         localStorage.removeItem("token");
       }
     }
@@ -49,14 +48,15 @@ function AuthProvider({ children }) {
   );
 }
 
-// -------------------------------------------------------------
-// Sign‑up component
-// -------------------------------------------------------------
+/* -------------------------------------------------------------
+   Register component
+   ------------------------------------------------------------- */
 function Register({ switchToLogin }) {
   const { login } = useContext(AuthContext);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   const submit = async (e) => {
     e.preventDefault();
@@ -87,14 +87,15 @@ function Register({ switchToLogin }) {
   );
 }
 
-// -------------------------------------------------------------
-// Login component
-// -------------------------------------------------------------
+/* -------------------------------------------------------------
+   Login component
+   ------------------------------------------------------------- */
 function Login({ switchToRegister }) {
   const { login } = useContext(AuthContext);
   const [form, setForm] = useState({ email: "", password: "" });
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   const submit = async (e) => {
     e.preventDefault();
@@ -123,15 +124,15 @@ function Login({ switchToRegister }) {
   );
 }
 
-// -------------------------------------------------------------
-// Todo list component (main app after login)
-// -------------------------------------------------------------
+/* -------------------------------------------------------------
+   TodoList component – now inside a “notepad” container
+   ------------------------------------------------------------- */
 function TodoList() {
   const { logout } = useContext(AuthContext);
   const [todos, setTodos] = useState([]);
   const [newTitle, setNewTitle] = useState("");
 
-  // Load todos once after component mounts
+  // Load the user's todos once after login
   useEffect(() => {
     fetchTodos();
   }, []);
@@ -162,11 +163,14 @@ function TodoList() {
   };
 
   return (
-    <div className="card" style={{ maxWidth: "600px", margin: "auto" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>My To‑Do List</h2>
+    <div className="notepad">
+      <header className="todo-header">
+        {/* Pencil icon – free from Font Awesome CDN */}
+        <img src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/svgs/solid/pencil.svg"
+             alt="pencil" />
+        <h2 style={{ margin: 0 }}>My To‑Do List</h2>
         <button onClick={logout}
-                style={{ background: "#e57373", border: "none", padding: "4px 8px", cursor: "pointer" }}>
+                style={{ marginLeft: "auto", background: "#e57373", border: "none", padding: "4px 8px", cursor: "pointer", color: "#fff" }}>
           Log out
         </button>
       </header>
@@ -179,39 +183,49 @@ function TodoList() {
                style={{ flex: 1, padding: "6px" }}
                required />
         <button type="submit"
-                style={{ background: "#81c784", border: "none", padding: "6px 12px", cursor: "pointer" }}>
+                style={{ background: "#81c784", border: "none", padding: "6px 12px", cursor: "pointer", color: "#fff" }}>
           Add
         </button>
       </form>
 
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {todos.map(todo => (
-          <li key={todo._id}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-                       padding: "6px 0", borderBottom: "1px solid #ddd" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-              <input type="checkbox"
-                     checked={todo.completed}
-                     onChange={() => toggleTodo(todo)} />
-              <span style={{
-                textDecoration: todo.completed ? "line-through" : "none",
-                color: todo.completed ? "#777" : "#000"
-              }}>{todo.title}</span>
-            </label>
-            <button onClick={() => deleteTodo(todo)}
-                    style={{ background: "transparent", border: "none", color: "#f44336", cursor: "pointer" }}>
-              ✖
-            </button>
-          </li>
-        ))}
-      </ul>
+      {todos.length === 0 ? (
+        <p className="empty-state">Your list is empty – start adding tasks!</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {todos.map(todo => (
+            <li key={todo._id}
+                className="todo-item"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "6px 0",
+                  borderBottom: "1px solid #ddd"
+                }}>
+              <label>
+                <input type="checkbox"
+                       checked={todo.completed}
+                       onChange={() => toggleTodo(todo)} />
+                <span style={{
+                  textDecoration: todo.completed ? "line-through" : "none",
+                  color: todo.completed ? "#777" : "#000"
+                }}>{todo.title}</span>
+              </label>
+              <button onClick={() => deleteTodo(todo)}
+                      style={{ background: "transparent", border: "none", color: "#f44336", cursor: "pointer" }}>
+                ✖
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-// -------------------------------------------------------------
-// Root component – switches between auth screens & todo UI
-// -------------------------------------------------------------
+/* -------------------------------------------------------------
+   Root component – switches between Auth screens & Todo UI
+   ------------------------------------------------------------- */
 function App() {
   const { user } = useContext(AuthContext);
   const [view, setView] = useState("login"); // "login" | "register"
@@ -222,13 +236,13 @@ function App() {
       : <Login    switchToRegister={() => setView("register")} />;
   }
 
-  // user is logged in → show the todo UI
+  // Logged‑in → show the notepad‑styled Todo UI
   return <TodoList />;
 }
 
-// -------------------------------------------------------------
-// Render the SPA
-// -------------------------------------------------------------
+/* -------------------------------------------------------------
+   Render the SPA
+   ------------------------------------------------------------- */
 const root = createRoot(document.getElementById("root"));
 root.render(
   <AuthProvider>

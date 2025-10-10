@@ -140,11 +140,17 @@
       await api.delete(`/todos/${todo._id}`);
       setTodos(todos.filter((t) => t._id !== todo._id));
     };
-    return /* @__PURE__ */ React.createElement("div", { className: "card", style: { maxWidth: "600px", margin: "auto" } }, /* @__PURE__ */ React.createElement("header", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, /* @__PURE__ */ React.createElement("h2", null, "My To\u2011Do List"), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "notepad" }, /* @__PURE__ */ React.createElement("header", { className: "todo-header" }, /* @__PURE__ */ React.createElement(
+      "img",
+      {
+        src: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/svgs/solid/pencil.svg",
+        alt: "pencil"
+      }
+    ), /* @__PURE__ */ React.createElement("h2", { style: { margin: 0 } }, "My To\u2011Do List"), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: logout,
-        style: { background: "#e57373", border: "none", padding: "4px 8px", cursor: "pointer" }
+        style: { marginLeft: "auto", background: "#e57373", border: "none", padding: "4px 8px", cursor: "pointer", color: "#fff" }
       },
       "Log out"
     )), /* @__PURE__ */ React.createElement(
@@ -167,14 +173,15 @@
         "button",
         {
           type: "submit",
-          style: { background: "#81c784", border: "none", padding: "6px 12px", cursor: "pointer" }
+          style: { background: "#81c784", border: "none", padding: "6px 12px", cursor: "pointer", color: "#fff" }
         },
         "Add"
       )
-    ), /* @__PURE__ */ React.createElement("ul", { style: { listStyle: "none", padding: 0 } }, todos.map((todo) => /* @__PURE__ */ React.createElement(
+    ), todos.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "empty-state" }, "Your list is empty \u2013 start adding tasks!") : /* @__PURE__ */ React.createElement("ul", { style: { listStyle: "none", padding: 0 } }, todos.map((todo) => /* @__PURE__ */ React.createElement(
       "li",
       {
         key: todo._id,
+        className: "todo-item",
         style: {
           display: "flex",
           alignItems: "center",
@@ -183,7 +190,7 @@
           borderBottom: "1px solid #ddd"
         }
       },
-      /* @__PURE__ */ React.createElement("label", { style: { display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" } }, /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement("label", null, /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "checkbox",

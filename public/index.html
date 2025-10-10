@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>To‑Do List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Base page styling (fallback if the external CSS fails) -->
   <style>
     body { margin:0; font-family:Arial,Helvetica,sans-serif; background:#f9f2e5; }
     #root { padding:20px; }
@@ -11,6 +14,9 @@
     a { color:#1565c0; text-decoration:none; }
     a:hover { text-decoration:underline; }
   </style>
+
+  <!-- Notepad‑style stylesheet (lined paper, pencil icon, etc.) -->
+  <link rel="stylesheet" href="notepad.css">
 </head>
 <body>
   <div id="root"></div>
@@ -18,10 +24,11 @@
   <!-- React & React‑DOM from CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
   <!-- Axios for HTTP requests -->
   <script src="https://unpkg.com/axios@1/dist/axios.min.js"></script>
 
-  <!-- Our single‑file React app -->
+  <!-- Your single‑file React app -->
   <script type="module" src="app-transpiled.js"></script>
 </body>
 </html>

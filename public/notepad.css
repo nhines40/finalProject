@@ -1,0 +1,60 @@
+
+body {
+  background: #f9f2e5;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.notepad {
+  background: #fff;
+  max-width: 720px;
+  margin: 40px auto;
+  padding: 30px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  background-image:
+    linear-gradient(to bottom,
+      transparent 0,
+      transparent 23px,
+      #d7d9d9 23px,
+      #d7d9d9 24px);
+  background-size: 100% 24px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+}
+
+.todo-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.todo-header img {
+  width: 32px;
+  height: 32px;
+}
+
+button {
+  transition: background-color .2s, opacity .2s;
+}
+button:hover {
+  opacity: .9;
+}
+
+.todo-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-state {
+  color: #777;
+  font‑style: italic;
+  text‑align: center;
+  margin-top: 30px;
+}
