@@ -165,16 +165,26 @@ function TodoList() {
   return (
     <div className="notepad">
       <header className="todo-header">
-        {/* Pencil icon – free from Font Awesome CDN */}
-        <img src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/svgs/solid/pencil.svg"
-             alt="pencil" />
+        {/* Pencil icon – reliable CDN link */}
+        <img
+          src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/pencil.svg"
+          alt="pencil"
+        />
         <h2 style={{ margin: 0 }}>My To‑Do List</h2>
-        <button onClick={logout}
-                style={{ marginLeft: "auto", background: "#e57373", border: "none", padding: "4px 8px", cursor: "pointer", color: "#fff" }}>
+        <button
+          onClick={logout}
+          style={{
+            marginLeft: "auto",
+            background: "#e57373",
+            border: "none",
+            padding: "4px 8px",
+            cursor: "pointer",
+            color: "#fff"
+          }}
+        >
           Log out
         </button>
       </header>
-
       <form onSubmit={addTodo}
             style={{ display: "flex", gap: "8px", margin: "12px 0" }}>
         <input value={newTitle}

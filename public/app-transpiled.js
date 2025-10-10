@@ -143,14 +143,21 @@
     return /* @__PURE__ */ React.createElement("div", { className: "notepad" }, /* @__PURE__ */ React.createElement("header", { className: "todo-header" }, /* @__PURE__ */ React.createElement(
       "img",
       {
-        src: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/svgs/solid/pencil.svg",
+        src: "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/pencil.svg",
         alt: "pencil"
       }
     ), /* @__PURE__ */ React.createElement("h2", { style: { margin: 0 } }, "My To\u2011Do List"), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: logout,
-        style: { marginLeft: "auto", background: "#e57373", border: "none", padding: "4px 8px", cursor: "pointer", color: "#fff" }
+        style: {
+          marginLeft: "auto",
+          background: "#e57373",
+          border: "none",
+          padding: "4px 8px",
+          cursor: "pointer",
+          color: "#fff"
+        }
       },
       "Log out"
     )), /* @__PURE__ */ React.createElement(
