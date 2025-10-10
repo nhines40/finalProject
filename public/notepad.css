@@ -4,7 +4,7 @@
 
 /* 1️⃣ Whole page – warm tan + horizontal ruled lines */
 body {
-  background: #faf3e0;                /* a slightly deeper tan than before */
+  background: #fae4a9;                /* a slightly deeper tan than before */
   background-image:
     repeating-linear-gradient(
       to bottom,
@@ -20,7 +20,7 @@ body {
 
 /* 2️⃣ Centered white “sheet” that holds the app */
 .notepad {
-  background: #fff;                     /* pure white paper for the UI */
+  background: #faf3e0;                     /* pure white paper for the UI */
   max-width: 720px;
   margin: 40px auto;                    /* centre it */
   padding: 30px 40px;
@@ -69,4 +69,10 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.card h2 {
+  text-align: center;          /* centre the text */
+  margin-top: 0;               /* remove extra top margin that browsers give */
+  margin-bottom: 15px;         /* give a little space before the form */
 }
