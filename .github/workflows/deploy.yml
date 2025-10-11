@@ -50,8 +50,14 @@ jobs:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          # Build once
           docker build -t $ECR_REGISTRY/final-project:$IMAGE_TAG .
+          # Tag the same image as "latest"
+          docker tag $ECR_REGISTRY/final-project:$IMAGE_TAG $ECR_REGISTRY/final-project:latest
+
+          # Push both tags
           docker push $ECR_REGISTRY/final-project:$IMAGE_TAG
+          docker push $ECR_REGISTRY/final-project:latest
 
       # -------------------------------------------------
       # 6️⃣ Deploy to Elastic Beanstalk (pull the new image)
