@@ -1,51 +1,46 @@
 # -------------------------------------------------
-# 1️⃣  Build stage – install dependencies & compile (if any)
+# 1️⃣  Builder stage – install all deps (including bcryptjs)
 # -------------------------------------------------
 FROM node:20-slim AS builder
 
-# Install OS packages needed only for building native modules.
-# (bcryptjs does NOT need any of these, but they are harmless and let you
-#  switch back to native bcrypt later if you ever want to.)
+# Install build‑tools just in case you ever need native modules
 RUN apt-get update && apt-get install -y \
     python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
 WORKDIR /app
 
-# --------------  COPY ONLY LOCK & JSON FIRST  --------------
-# This lets Docker cache the `npm ci` layer when only source files change.
+# ---- Copy ONLY the package files first (helps Docker caching) ----
 COPY package*.json ./
 
-# Install **exactly** the versions from package-lock.json.
-# Use `npm ci` for reproducible installs.
+# Install **exact** versions from package‑lock (production only)
 RUN npm ci --only=production
 
-# --------------  COPY THE SOURCE CODE  -----------------
+# ---- Now copy the rest of the source code ----
 COPY . .
 
-# (Optional) If you have a front‑end build step, run it here.
-# RUN npm run build   # <-- uncomment if you need it
+# (If you have a front‑end build step, run it here)
+# RUN npm run build   # <-- uncomment if you bundle React
 
 # -------------------------------------------------
-# 2️⃣  Production stage – only runtime files, no build tools
+# 2️⃣  Runtime stage – thin image, no build tools
 # -------------------------------------------------
 FROM node:20-slim AS runtime
 
 WORKDIR /app
 
-# Copy the already‑installed node_modules from the builder stage.
+# Bring the already‑installed node_modules from the builder
 COPY --from=builder /app/node_modules ./node_modules
 
-# Copy the rest of the application code.
+# Copy the application source (built files are already there)
 COPY --from=builder /app .
 
-# Expose the port your server listens on (the same you use in code).
+# Expose the port your server listens on
 EXPOSE 3000
 
-# Run as a non‑root user – safer in production.
+# Run as a non‑root user (safer in production)
 RUN groupadd -r app && useradd -r -g app app
 USER app
 
-# Start the server – adjust the path if your entry point lives elsewhere.
+# Start the server – adjust the entry‑point if your file lives elsewhere
 CMD ["node", "server/server.js"]
