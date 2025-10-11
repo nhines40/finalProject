@@ -4,7 +4,7 @@
 const express    = require('express');
 const axios      = require('axios');
 const mongoose   = require('mongoose');
-const bcrypt     = require('bcrypt');       // you already used this
+const bcryptjs     = require('bcryptjs');       // you already used this
 const https      = require('https');
 const bodyParser = require('body-parser');
 const WebSocket  = require('ws');
@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.methods.isValidPassword = function (plain) {
-  return bcrypt.compare(plain, this.password);
+  return bcryptjs.compare(plain, this.password);
 };
 
 const todoSchema = new mongoose.Schema({
@@ -111,7 +111,7 @@ app.post('/api/auth/register', async (req, res) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ msg: 'Email already taken' });
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcryptjs.hash(password, 10);
     const user = await User.create({ name, email, password: passwordHash });
 
     const token = generateToken(user);
