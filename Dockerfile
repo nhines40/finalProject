@@ -1,46 +1,48 @@
-# -------------------------------------------------
-# 1️⃣  Builder stage – install all deps (including bcryptjs)
-# -------------------------------------------------
-FROM node:20-slim AS builder
+# ---- Build stage -------------------------------------------------
+FROM node:20-alpine AS build
 
-# Install build‑tools just in case you ever need native modules
-RUN apt-get update && apt-get install -y \
-    python3 make g++ \
-    && rm -rf /var/lib/apt/lists/*
-
+# Create app directory
 WORKDIR /app
 
-# ---- Copy ONLY the package files first (helps Docker caching) ----
+# Install build‑time dependencies (all of them)
 COPY package*.json ./
+RUN npm ci                     # <-- installs bcryptjs + everything else
 
-# Install **exact** versions from package‑lock (production only)
-RUN npm ci --only=production
+# -----------------------------------------------------------------
+# OPTIONAL – Explicit safety net (forces bcryptjs even if it ends up
+#            under devDependencies or is missing from the lock file)
+# -----------------------------------------------------------------
+RUN npm install bcryptjs@3.0.2 --save-prod
 
-# ---- Now copy the rest of the source code ----
+# Copy source code (your server, public files …)
 COPY . .
 
-# (If you have a front‑end build step, run it here)
-# RUN npm run build   # <-- uncomment if you bundle React
-
-# -------------------------------------------------
-# 2️⃣  Runtime stage – thin image, no build tools
-# -------------------------------------------------
-FROM node:20-slim AS runtime
+# ---- Production stage --------------------------------------------
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Bring the already‑installed node_modules from the builder
-COPY --from=builder /app/node_modules ./node_modules
+# Copy the *entire* node_modules folder from the build stage
+# (this avoids a second npm install and guarantees the exact same
+#  deps you built with.)
+COPY --from=build /app/node_modules ./node_modules
 
-# Copy the application source (built files are already there)
-COPY --from=builder /app .
+# Copy only the runtime artefacts you need
+COPY --from=build /app/server ./server
+COPY --from=build /app/public ./public
+COPY --from=build /app/package*.json ./
 
-# Expose the port your server listens on
+# No more npm install here – we already have everything.
+
+# Expose the port the app runs on
 EXPOSE 3000
 
-# Run as a non‑root user (safer in production)
-RUN groupadd -r app && useradd -r -g app app
+# Use a non‑root user (optional but recommended)
+RUN addgroup app && adduser -S -G app app
 USER app
 
-# Start the server – adjust the entry‑point if your file lives elsewhere
+# Environment variables default (override at runtime)
+ENV PORT=3000
+
+# Start the server
 CMD ["node", "server/server.js"]
