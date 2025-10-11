@@ -50,9 +50,9 @@ jobs:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Build once
+          # Build the multi‑stage image (the Dockerfile above does all the work)
           docker build -t $ECR_REGISTRY/final-project:$IMAGE_TAG .
-          # Tag the same image as "latest"
+          # Also tag it as "latest" if you want the quick‑fallback approach
           docker tag $ECR_REGISTRY/final-project:$IMAGE_TAG $ECR_REGISTRY/final-project:latest
 
           # Push both tags
