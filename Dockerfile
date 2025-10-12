@@ -13,6 +13,7 @@ RUN npm ci                     # <-- installs bcryptjs + everything else
 #            under devDependencies or is missing from the lock file)
 # -----------------------------------------------------------------
 RUN npm install bcryptjs@3.0.2 --save-prod
+RUN npm install jsonwebtoken@9.0.2 --save-prod
 
 # Copy source code (your server, public files …)
 COPY . .
