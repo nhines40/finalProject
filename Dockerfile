@@ -14,8 +14,8 @@ RUN npm ci                     # <-- installs bcryptjs + everything else
 # missing (or under devDependencies) they will be added and saved
 # to the image’s package.json (the change lives only inside the image).
 # -----------------------------------------------------------------
-RUN npm install bcryptjs@3.0.2 --save-prod \
- && npm install ws@7.5.3        --save-prod
+RUN npm install bcryptjs@3.0.2 --save-prod 
+RUN npm install ws@7.5.3 --save-prod
 
 # Copy source code (your server, public files …)
 COPY . .
