@@ -9,10 +9,13 @@ COPY package*.json ./
 RUN npm ci                     # <-- installs bcryptjs + everything else
 
 # -----------------------------------------------------------------
-# OPTIONAL – Explicit safety net (forces bcryptjs even if it ends up
-#            under devDependencies or is missing from the lock file)
+# Safety‑net: force the two libraries we know are missing.
+# If they are already present, this command is a no‑op; if they are
+# missing (or under devDependencies) they will be added and saved
+# to the image’s package.json (the change lives only inside the image).
 # -----------------------------------------------------------------
-RUN npm install bcryptjs@3.0.2 --save-prod
+RUN npm install bcryptjs@3.0.2 --save-prod \
+ && npm install ws@7.5.3        --save-prod
 
 # Copy source code (your server, public files …)
 COPY . .
