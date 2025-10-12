@@ -1,50 +1,33 @@
 # -------------------------------------------------
-# 1️⃣  Build stage – install everything we need
+# 1️⃣  Build stage – Debian‑based (no extra apk needed)
 # -------------------------------------------------
-FROM node:20-alpine AS build
-
-# Install the native‑build tool‑chain that node‑gyp (used by ws) needs.
-#   - python3   : required by node‑gyp
-#   - make, g++ : compiler tool‑chain
-#   - libc-dev  : system headers (included in the meta‑package build-base)
-RUN apk add --no-cache \
-        python3 \
-        build-base   # = make + gcc + g++ + libc-dev
+FROM node:20-slim AS build
 
 WORKDIR /app
 
-# Install **all** dependencies (dev + prod) from the lock file.
 COPY package*.json ./
-RUN npm ci                     # ws, bcryptjs, … are compiled here
+RUN npm ci
 
-# (Optional safety‑net – forces the two libs in case they are missing)
+# (optional safety‑net – still works)
 RUN npm install bcryptjs@3.0.2 --save-prod
 RUN npm install ws@7.5.3        --save-prod
 
-# Copy the rest of the source code
 COPY . .
 
 # -------------------------------------------------
-# 2️⃣  Runtime stage – tiny image that only runs the app
+# 2️⃣  Runtime stage – same base
 # -------------------------------------------------
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Copy the **exact** node_modules that we just built.
 COPY --from=build /app/node_modules ./node_modules
-
-# Copy only the artefacts you need at runtime.
 COPY --from=build /app/server ./server
 COPY --from=build /app/public ./public
 COPY --from=build /app/package*.json ./
 
 EXPOSE 3000
-
-# Run as a non‑root user (safer in production)
 RUN addgroup app && adduser -S -G app app
 USER app
-
 ENV PORT=3000
-
 CMD ["node", "server/server.js"]
