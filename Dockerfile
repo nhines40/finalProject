@@ -12,7 +12,7 @@ RUN npm ci                     # <-- installs bcryptjs + everything else
 # SECOND INSTALL – clean first, then add the extras
 # -------------------------------------------------
 RUN rm -rf node_modules && \
-    npm install bcryptjs@3.0.2 jsonwebtoken@9.0.2 --save-prod
+    npm install bcryptjs@3.0.2 jsonwebtoken@9.0.2 jws@3.2.2 --save-prod
 
 # Copy source code (your server, public files …)
 COPY . .
