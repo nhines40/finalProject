@@ -4,36 +4,46 @@
 const express    = require('express');
 const axios      = require('axios');
 const mongoose   = require('mongoose');
-const bcryptjs     = require('bcryptjs');       // you already used this
+const bcryptjs   = require('bcryptjs');       // you already used this
 const https      = require('https');
 const bodyParser = require('body-parser');
-const WebSocket  = require('ws');
 const jwt        = require('jsonwebtoken'); // <-- needed for JWT
 const crypto     = require('crypto');       // <-- needed for auto‑generated secret
+
+// ----- NEW: HTTP + Socket.IO -------------------------------------------------
+const http       = require('http');
+const { Server: SocketIOServer } = require('socket.io');
 
 const app = express();
 app.use(bodyParser.json());
 
-/* ---------- 1️⃣  Configuration (defaults for local dev) ---------- */
+// -------------------------------------------------
+// 1️⃣  Configuration (defaults for local dev)
+// -------------------------------------------------
 const MONGO_URI = process.env.MONGO_URI ||
                   'mongodb://127.0.0.1:27017/todo-app';
 const port      = process.env.PORT || 3000;
 
-/* ---------- 2️⃣  JWT secret – env var or temporary generated one ---------- */
+// -------------------------------------------------
+// 2️⃣  JWT secret – env var or temporary generated one
+// -------------------------------------------------
 let JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  // 64 random bytes → 128‑hex characters – good enough for local testing
   JWT_SECRET = crypto.randomBytes(64).toString('hex');
   console.warn('⚠️  No JWT_SECRET supplied – using a temporary secret for this session.');
 }
 
-/* ---------- 3️⃣  MongoDB connection ---------- */
+// -------------------------------------------------
+// 3️⃣  MongoDB connection
+// -------------------------------------------------
 mongoose
   .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log(`✅ Connected to MongoDB (${MONGO_URI})`))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
-/* ---------- 4️⃣  Schemas ---------- */
+// -------------------------------------------------
+// 4️⃣  Schemas
+// -------------------------------------------------
 const userSchema = new mongoose.Schema({
   name:     { type: String, required: true },
   email:    { type: String, required: true, unique: true, lowercase: true },
@@ -54,32 +64,38 @@ const todoSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 const Todo = mongoose.model('Todo', todoSchema);
 
-/* ---------- 5️⃣  Axios HTTPS config (kept from your old file) ---------- */
+// -------------------------------------------------
+// 5️⃣  Axios HTTPS config (kept from your old file)
+// -------------------------------------------------
 axios.defaults.httpsAgent = new https.Agent({
   rejectUnauthorized: false,
 });
 
-/* ---------- 6️⃣  WebSocket server (unchanged) ---------- */
-const wss = new WebSocket.Server({ port: 8080 });
+// -------------------------------------------------
+// 6️⃣  Socket.IO server (replaces ws)
+// -------------------------------------------------
+const httpServer = http.createServer(app);               // <-- use the same Express app
+const io = new SocketIOServer(httpServer, {
+  cors: { origin: '*', methods: ['GET', 'POST'] }
+});
 
-wss.on('connection', ws => {
-  console.log('Client connected');
+io.on('connection', socket => {
+  console.log('🔌 Socket.IO client connected (id =', socket.id, ')');
 
-  ws.on('message', message => {
-    console.log(`Received message => ${message}`);
-    wss.clients.forEach(client => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
+  socket.on('message', msg => {
+    console.log(`📨 Received message => ${msg}`);
+    // broadcast to everyone else
+    socket.broadcast.emit('message', msg);
   });
 
-  ws.on('close', () => {
-    console.log('Client disconnected');
+  socket.on('disconnect', () => {
+    console.log('🔌 Socket.IO client disconnected (id =', socket.id, ')');
   });
 });
 
-/* ---------- 7️⃣  JWT helpers ---------- */
+// -------------------------------------------------
+// 7️⃣  JWT helpers
+// -------------------------------------------------
 function generateToken(user) {
   return jwt.sign(
     { id: user._id, email: user.email },
@@ -90,9 +106,8 @@ function generateToken(user) {
 
 function protect(req, res, next) {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) {
+  if (!auth?.startsWith('Bearer '))
     return res.status(401).json({ msg: 'No token supplied' });
-  }
 
   const token = auth.split(' ')[1];
   try {
@@ -104,7 +119,12 @@ function protect(req, res, next) {
   }
 }
 
-/* ---------- 8️⃣  Auth routes ---------- */
+/* -----------------------------------------------------------------
+   The rest of the file (auth routes, todo CRUD, static serving, etc.)
+   stays exactly the same – you only swapped out `ws` for Socket.IO.
+   ----------------------------------------------------------------- */
+
+// ---------- 8️⃣  Auth routes ----------
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -171,10 +191,11 @@ app.delete('/api/todos/:id', protect, async (req, res) => {
   res.json({ msg: 'Deleted' });
 });
 
-/* ---------- 10️⃣  Serve static front‑end (exactly as you had) ---------- */
+/* ---------- 10️⃣  Serve static front‑end ---------- */
 app.use(express.static('public'));
 
-/* ---------- 11️⃣  Start the server (unchanged) ---------- */
-app.listen(port, () => {
-  console.log(`Server started on port ${port}`);
+/* ---------- 11️⃣  Start the server ---------- */
+// NOTE: we start the *httpServer* that also hosts Socket.IO
+httpServer.listen(port, () => {
+  console.log(`🚀 Server started on http://localhost:${port}`);
 });

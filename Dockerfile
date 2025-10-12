@@ -1,33 +1,48 @@
-# -------------------------------------------------
-# 1️⃣  Build stage – Debian‑based (no extra apk needed)
-# -------------------------------------------------
-FROM node:20-slim AS build
+# ---- Build stage -------------------------------------------------
+FROM node:20-alpine AS build
 
+# Create app directory
 WORKDIR /app
 
+# Install build‑time dependencies (all of them)
 COPY package*.json ./
-RUN npm ci
+RUN npm ci                     # <-- installs bcryptjs + everything else
 
-# (optional safety‑net – still works)
+# -----------------------------------------------------------------
+# OPTIONAL – Explicit safety net (forces bcryptjs even if it ends up
+#            under devDependencies or is missing from the lock file)
+# -----------------------------------------------------------------
 RUN npm install bcryptjs@3.0.2 --save-prod
-RUN npm install ws@7.5.3        --save-prod
 
+# Copy source code (your server, public files …)
 COPY . .
 
-# -------------------------------------------------
-# 2️⃣  Runtime stage – same base
-# -------------------------------------------------
-FROM node:20-slim
+# ---- Production stage --------------------------------------------
+FROM node:20-alpine
 
 WORKDIR /app
 
+# Copy the *entire* node_modules folder from the build stage
+# (this avoids a second npm install and guarantees the exact same
+#  deps you built with.)
 COPY --from=build /app/node_modules ./node_modules
+
+# Copy only the runtime artefacts you need
 COPY --from=build /app/server ./server
 COPY --from=build /app/public ./public
 COPY --from=build /app/package*.json ./
 
+# No more npm install here – we already have everything.
+
+# Expose the port the app runs on
 EXPOSE 3000
+
+# Use a non‑root user (optional but recommended)
 RUN addgroup app && adduser -S -G app app
 USER app
+
+# Environment variables default (override at runtime)
 ENV PORT=3000
+
+# Start the server
 CMD ["node", "server/server.js"]
