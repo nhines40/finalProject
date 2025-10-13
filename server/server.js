@@ -199,3 +199,7 @@ app.use(express.static('public'));
 httpServer.listen(port, () => {
   console.log(`🚀 Server started on http://localhost:${port}`);
 });
+
+// at the very bottom of server.js (already present)
+module.exports = { httpServer };
+
